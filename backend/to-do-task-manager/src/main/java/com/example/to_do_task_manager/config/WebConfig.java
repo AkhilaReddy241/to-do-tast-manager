@@ -16,7 +16,8 @@ public class WebConfig {
                 registry.addMapping("/api/**")
                         .allowedOrigins(
                                 "http://localhost:5173",
-                                "http://127.0.0.1:5173"
+                                "http://127.0.0.1:5173",
+                                "https://to-do-tast-manager-qgtu.vercel.app"
                         )
                         .allowedMethods(
                                 "GET", "POST", "PUT",
