@@ -1,0 +1,22 @@
+TO-DO TASK MANAGER — REACT FRONTEND + SPRING BOOT BACKEND
+
+Folder structure:
+  frontend/  -> React + Vite
+  backend/   -> Java Spring Boot + MySQL
+
+1. Configure MySQL password:
+   backend/src/main/resources/application.properties
+
+2. Start backend (VS Code terminal 1):
+   cd backend
+   mvn spring-boot:run
+
+3. Install Node.js LTS if needed, then start frontend (VS Code terminal 2):
+   cd frontend
+   npm install
+   npm run dev
+
+4. Open the localhost URL Vite prints (normally http://localhost:5173).
+
+Keep both terminal processes running.
+Read README.md for API endpoints and troubleshooting.
