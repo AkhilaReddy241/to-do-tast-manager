@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-const API = "http://localhost:8080/api/tasks";
+const API_URL = `${import.meta.env.VITE_API_URL}/api/tasks`;
 
 const emptyForm = {
   title: "",
