@@ -1,13 +1,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  House, ChartNoAxesColumn, ChartPie, CalendarDays,
-  Moon, Settings, Search, Bell, Plus, Pencil,
-  Trash2, Eye, ChevronLeft, ChevronRight,
-  ClipboardList, EllipsisVertical
+  House,
+  ChartNoAxesColumn,
+  ChartPie,
+  CalendarDays,
+  Moon,
+  Settings,
+  Search,
+  Bell,
+  Plus,
+  Pencil,
+  Trash2,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  EllipsisVertical
 } from "lucide-react";
 import "./styles.css";
 
+// Backend URL configured in Vercel as VITE_API_URL
 const API_URL = `${import.meta.env.VITE_API_URL}/api/tasks`;
 
 const emptyForm = {
@@ -26,7 +39,9 @@ const tabs = [
 
 function formatDate(value) {
   if (!value) return "—";
+
   const date = new Date(value);
+
   return Number.isNaN(date.getTime())
     ? value
     : date.toLocaleDateString("en-GB");
@@ -39,6 +54,7 @@ function getStatus(status) {
     REVIEW: "In Review",
     COMPLETED: "Completed"
   };
+
   return labels[String(status || "PENDING").toUpperCase()] || status;
 }
 
@@ -59,17 +75,30 @@ export default function App() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
+  // GET: Load tasks from the backend
   async function loadTasks() {
     setLoading(true);
+
     try {
-      const response = await fetch(API);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!import.meta.env.VITE_API_URL) {
+        throw new Error("VITE_API_URL is not configured.");
+      }
+
+      const response = await fetch(API_URL);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data = await response.json();
+
       setTasks(Array.isArray(data) ? data : []);
       setError("");
-    } catch {
+    } catch (err) {
       setError(
-        "Cannot connect to the task API. Ensure Spring Boot is running on port 8080 and GET /api/tasks is available."
+        `Cannot load tasks. Check the backend URL and connection. ${
+          err.message || ""
+        }`
       );
     } finally {
       setLoading(false);
@@ -86,16 +115,20 @@ export default function App() {
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const status = String(task.status || "PENDING").toUpperCase();
+
       const text =
         `${task.title || ""} ${task.description || ""}`.toLowerCase();
 
       const matchesTab = status === activeTabStatus;
       const matchesSearch = text.includes(search.trim().toLowerCase());
+
       const matchesStatus =
         statusFilter === "ALL" || status === statusFilter;
+
       const matchesPriority =
         priorityFilter === "ALL" ||
-        String(task.priority || "MEDIUM").toUpperCase() === priorityFilter;
+        String(task.priority || "MEDIUM").toUpperCase() ===
+          priorityFilter;
 
       return (
         matchesTab &&
@@ -116,6 +149,7 @@ export default function App() {
     1,
     Math.ceil(filteredTasks.length / pageSize)
   );
+
   const currentPage = Math.min(page, totalPages);
 
   const visibleTasks = filteredTasks.slice(
@@ -141,6 +175,7 @@ export default function App() {
 
   function openEdit(task) {
     setEditingTask(task);
+
     setForm({
       title: task.title || "",
       description: task.description || "",
@@ -150,16 +185,23 @@ export default function App() {
         ? String(task.dueDate).slice(0, 10)
         : ""
     });
+
     setModalOpen(true);
     setNotice("");
     setError("");
   }
 
+  // POST: Create a task; PUT: Update an existing task
   async function saveTask(event) {
     event.preventDefault();
 
     if (!form.title.trim()) {
       setError("Task title is required.");
+      return;
+    }
+
+    if (!import.meta.env.VITE_API_URL) {
+      setError("Backend URL is missing. Check Vercel environment variables.");
       return;
     }
 
@@ -174,10 +216,14 @@ export default function App() {
 
     try {
       const response = await fetch(
-        editingTask ? `${API}/${editingTask.id}` : API,
+        editingTask
+          ? `${API_URL}/${editingTask.id}`
+          : API_URL,
         {
           method: editingTask ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify(payload)
         }
       );
@@ -188,6 +234,7 @@ export default function App() {
       }
 
       setModalOpen(false);
+
       setNotice(
         editingTask
           ? "Task updated successfully."
@@ -197,33 +244,42 @@ export default function App() {
       await loadTasks();
     } catch (err) {
       setError(
-        `Could not save the task. Check your backend endpoint and fields. ${err.message || ""}`
+        `Could not save the task. ${err.message || "Check your backend endpoint and fields."}`
       );
     } finally {
       setSaving(false);
     }
   }
 
+  // DELETE: Remove a task
   async function deleteTask(task) {
     if (!window.confirm(`Delete "${task.title}"?`)) return;
 
     setError("");
+    setNotice("");
+
     try {
-      const response = await fetch(`${API}/${task.id}`, {
+      const response = await fetch(`${API_URL}/${task.id}`, {
         method: "DELETE"
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
       setNotice("Task deleted successfully.");
+
       await loadTasks();
-    } catch {
+    } catch (err) {
       setError(
-        "Could not delete the task. Check DELETE /api/tasks/{id}."
+        `Could not delete the task. ${
+          err.message || "Check DELETE /api/tasks/{id}."
+        }`
       );
     }
   }
 
+  // PUT: Update task status
   async function changeTaskStatus(task, newStatus) {
     setError("");
     setNotice("");
@@ -234,9 +290,11 @@ export default function App() {
     };
 
     try {
-      const response = await fetch(`${API}/${task.id}`, {
+      const response = await fetch(`${API_URL}/${task.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify(updated)
       });
 
@@ -253,10 +311,13 @@ export default function App() {
       };
 
       setNotice(messages[newStatus] || "Task status updated.");
+
       await loadTasks();
     } catch (err) {
       setError(
-        `Could not update task status to ${newStatus}. Make sure your backend supports this status. ${err.message || ""}`
+        `Could not update task status to ${newStatus}. ${
+          err.message || "Check your backend."
+        }`
       );
     }
   }
@@ -271,10 +332,16 @@ export default function App() {
   return (
     <div className="app-shell container-fluid p-0">
       <div className="row g-0 min-vh-100">
-        <aside className="sidebar col-auto d-flex flex-column align-items-center"
-         style={{ backgroundColor: "#7C3AED" }}>
-          <div className="brand-logo"
-         style={{ backgroundColor: "#c2c1d1" }} >UI</div>
+        <aside
+          className="sidebar col-auto d-flex flex-column align-items-center"
+          style={{ backgroundColor: "#7C3AED" }}
+        >
+          <div
+            className="brand-logo"
+            style={{ backgroundColor: "#c2c1d1" }}
+          >
+            UI
+          </div>
 
           <nav className="side-nav d-flex flex-column align-items-center">
             <button title="Home"><House /></button>
@@ -310,6 +377,7 @@ export default function App() {
             <button className="header-icon" title="Notifications">
               <Bell />
             </button>
+
             <div className="profile-avatar">U</div>
           </header>
 
@@ -327,7 +395,9 @@ export default function App() {
                 return (
                   <button
                     key={item.name}
-                    className={`task-tab ${tab === item.name ? "active" : ""}`}
+                    className={`task-tab ${
+                      tab === item.name ? "active" : ""
+                    }`}
                     onClick={() => changeTab(item.name)}
                   >
                     {item.name}
@@ -461,7 +531,9 @@ export default function App() {
 
                           <td>
                             <span
-                              className={`priority-badge ${(task.priority || "MEDIUM").toLowerCase()}`}
+                              className={`priority-badge ${
+                                (task.priority || "MEDIUM").toLowerCase()
+                              }`}
                             >
                               {task.priority || "MEDIUM"}
                             </span>
@@ -469,7 +541,7 @@ export default function App() {
 
                           <td>
                             <span
-                              className={`status-badge ${(status || "PENDING").toLowerCase()}`}
+                              className={`status-badge ${status.toLowerCase()}`}
                             >
                               {getStatus(status)}
                             </span>
@@ -742,6 +814,7 @@ export default function App() {
             <div className="modal-heading d-flex justify-content-between align-items-center">
               <h2>Task Details</h2>
               <button
+                type="button"
                 className="btn-close"
                 onClick={() => setViewTask(null)}
                 aria-label="Close"
@@ -763,6 +836,7 @@ export default function App() {
             </p>
 
             <button
+              type="button"
               className="btn create-button"
               onClick={() => setViewTask(null)}
             >
